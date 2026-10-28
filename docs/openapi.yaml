@@ -1,0 +1,220 @@
+openapi: 3.1.0
+info:
+  title: Shinigami REST API
+  version: 1.0.0
+  description: >
+    JSON-only REST proxy untuk API upstream Shinigami (api.shngm.io, slider.shinigami.io,
+    explore.shngm.io). Live-fetch + cache in-memory TTL 60s, tanpa penyimpanan permanen.
+    Tidak ada HTML/dashboard — semua respons JSON.
+servers:
+  - url: http://127.0.0.1:8787
+paths:
+  /:
+    get:
+      summary: Katalog endpoint (JSON)
+      responses:
+        "200": { description: Daftar endpoint, $ref: "#/components/responses/Catalog" }
+  /api/home:
+    get:
+      summary: Slider + announcements + top + latest (fan-out paralel)
+      responses:
+        "200": { description: OK, $ref: "#/components/responses/Envelope" }
+        "502": { $ref: "#/components/responses/UpstreamError" }
+  /api/manga/list:
+    get:
+      summary: Daftar manga (passthrough upstream)
+      parameters:
+        - { name: page, in: query, schema: { type: integer, default: 1 } }
+        - { name: page_size, in: query, schema: { type: integer, default: 10, maximum: 24 } }
+        - { name: q, in: query, schema: { type: string } }
+        - { name: type, in: query, schema: { type: string } }
+        - name: format
+          in: query
+          schema: { type: string, enum: [manga, manhua, manhwa] }
+        - { name: category, in: query, schema: { type: string, enum: [explore-list-1, explore-list-2, explore-list-3] } }
+        - { name: genre_include, in: query, schema: { type: string }, description: slug, repeatable }
+        - { name: is_recommended, in: query, schema: { type: boolean } }
+        - { name: is_update, in: query, schema: { type: boolean } }
+        - { name: sort, in: query, schema: { type: string, enum: [latest] } }
+        - { name: sort_order, in: query, schema: { type: string, enum: [asc, desc], default: desc } }
+      responses:
+        "200": { description: OK, $ref: "#/components/responses/Envelope" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "502": { $ref: "#/components/responses/UpstreamError" }
+  /api/manga/top:
+    get:
+      summary: Peringkat manga
+      parameters:
+        - name: filter
+          in: query
+          required: false
+          schema: { type: string, enum: [daily, weekly, all_time], default: daily }
+        - { name: page, in: query, schema: { type: integer, default: 1 } }
+        - { name: page_size, in: query, schema: { type: integer, default: 10, maximum: 24 } }
+      responses:
+        "200": { description: OK, $ref: "#/components/responses/Envelope" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "502": { $ref: "#/components/responses/UpstreamError" }
+  /api/manga/{manga_id}:
+    get:
+      summary: Detail manga + meta latest chapter
+      parameters:
+        - { name: manga_id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: OK, $ref: "#/components/responses/Envelope" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "502": { $ref: "#/components/responses/UpstreamError" }
+  /api/manga/{manga_id}/chapters:
+    get:
+      summary: Meta chapter (upstream tidak punya full list)
+      parameters:
+        - { name: manga_id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: latest + note, $ref: "#/components/responses/Envelope" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "502": { $ref: "#/components/responses/UpstreamError" }
+  /api/chapter/{chapter_id}:
+    get:
+      summary: Detail chapter + images[] absolut (high/low) + prev/next
+      parameters:
+        - { name: chapter_id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: OK, $ref: "#/components/responses/Envelope" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "502": { $ref: "#/components/responses/UpstreamError" }
+  /api/genres:
+    get:
+      summary: Daftar genre
+      parameters: &paged
+        - { name: page, in: query, schema: { type: integer, default: 1 } }
+        - { name: page_size, in: query, schema: { type: integer, default: 10, maximum: 24 } }
+      responses:
+        "200": { description: OK, $ref: "#/components/responses/Envelope" }
+  /api/types:
+    get:
+      summary: Daftar tipe
+      parameters: *paged
+      responses:
+        "200": { description: OK, $ref: "#/components/responses/Envelope" }
+  /api/formats:
+    get:
+      summary: Daftar format
+      parameters: *paged
+      responses:
+        "200": { description: OK, $ref: "#/components/responses/Envelope" }
+  /api/authors:
+    get:
+      summary: Daftar author
+      parameters:
+        - { name: q, in: query, schema: { type: string } }
+        - { name: page, in: query, schema: { type: integer, default: 1 } }
+        - { name: page_size, in: query, schema: { type: integer, default: 10, maximum: 24 } }
+      responses:
+        "200": { description: OK, $ref: "#/components/responses/Envelope" }
+  /api/artists:
+    get:
+      summary: Daftar artist
+      parameters:
+        - { name: q, in: query, schema: { type: string } }
+        - { name: page, in: query, schema: { type: integer, default: 1 } }
+        - { name: page_size, in: query, schema: { type: integer, default: 10, maximum: 24 } }
+      responses:
+        "200": { description: OK, $ref: "#/components/responses/Envelope" }
+  /api/announcements:
+    get:
+      summary: Daftar pengumuman
+      parameters: *paged
+      responses:
+        "200": { description: OK, $ref: "#/components/responses/Envelope" }
+  /api/slider:
+    get:
+      summary: Slider homepage (slider.shinigami.io/v1/slider/web)
+      responses:
+        "200": { description: OK, $ref: "#/components/responses/Envelope" }
+        "502": { $ref: "#/components/responses/UpstreamError" }
+  /api/search:
+    get:
+      summary: Alias manga/list?q=
+      parameters:
+        - { name: q, in: query, required: true, schema: { type: string, minLength: 1 } }
+      responses:
+        "200": { description: OK, $ref: "#/components/responses/Envelope" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+  /api/explore:
+    get:
+      summary: Layout explore + resolve tiap category ke manga
+      responses:
+        "200": { description: OK, $ref: "#/components/responses/Envelope" }
+        "502": { $ref: "#/components/responses/UpstreamError" }
+  /api/random:
+    get:
+      summary: Satu manga acak (via manga/list)
+      responses:
+        "200": { description: OK, $ref: "#/components/responses/Envelope" }
+        "502": { $ref: "#/components/responses/UpstreamError" }
+components:
+  responses:
+    Catalog:
+      description: JSON katalog endpoint
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              retcode: { type: integer, const: 0 }
+              message: { type: string }
+              data:
+                type: object
+                properties:
+                  version: { type: string }
+                  endpoints:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        method: { type: string }
+                        path: { type: string }
+                        description: { type: string }
+    Envelope:
+      description: Envelope standar
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Envelope" }
+    BadRequest:
+      description: Parameter tidak valid
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+    NotFound:
+      description: Manga/chapter tidak ditemukan (upstream 4xx)
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+    UpstreamError:
+      description: Upstream 5xx / network error
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+  schemas:
+    Envelope:
+      type: object
+      required: [retcode, message, data]
+      properties:
+        retcode: { type: integer, const: 0 }
+        message: { type: string }
+        meta:
+          type: object
+          properties:
+            source: { type: string, description: URL upstream asli }
+            cache: { type: string, enum: [HIT, MISS] }
+            clamped: { type: boolean }
+            total_page: { type: integer }
+            total_record: { type: integer }
+        data: {}
+    ErrorEnvelope:
+      type: object
+      required: [retcode, message]
+      properties:
+        retcode: { type: integer, enum: [400, 404, 405, 502] }
+        message: { type: string }
+        data: { nullable: true }

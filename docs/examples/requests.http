@@ -1,0 +1,43 @@
+### Katalog endpoint
+GET http://127.0.0.1:8787/
+
+### Home (fan-out)
+GET http://127.0.0.1:8787/api/home
+
+### Manga list
+GET http://127.0.0.1:8787/api/manga/list?page=1&page_size=10&sort=latest&sort_order=desc
+
+### Manga list + filter format & genre
+GET http://127.0.0.1:8787/api/manga/list?format=manhwa&genre_include=action&is_update=true
+
+### Top daily
+GET http://127.0.0.1:8787/api/manga/top?filter=daily
+
+### Manga detail (ganti {manga_id})
+GET http://127.0.0.1:8787/api/manga/{manga_id}
+
+### Chapter meta
+GET http://127.0.0.1:8787/api/manga/{manga_id}/chapters
+
+### Chapter detail + images (ganti {chapter_id})
+GET http://127.0.0.1:8787/api/chapter/{chapter_id}
+
+### Taxonomies
+GET http://127.0.0.1:8787/api/genres
+GET http://127.0.0.1:8787/api/types
+GET http://127.0.0.1:8787/api/formats
+
+### People
+GET http://127.0.0.1:8787/api/authors?q=a
+GET http://127.0.0.1:8787/api/artists?q=a
+
+### Misc
+GET http://127.0.0.1:8787/api/announcements?page=1&page_size=10
+GET http://127.0.0.1:8787/api/slider
+GET http://127.0.0.1:8787/api/search?q=solo
+GET http://127.0.0.1:8787/api/explore
+GET http://127.0.0.1:8787/api/random
+
+### Error mapping
+GET http://127.0.0.1:8787/api/manga/top?filter=hourly
+GET http://127.0.0.1:8787/api/manga/does-not-exist
